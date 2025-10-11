@@ -15,40 +15,13 @@ function App() {
   const [temperatureData, setTemperatureData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [useRealData, setUseRealData] = useState(false);
   const [pollingInterval, setPollingInterval] = useState(30); // seconds
   const [isPolling, setIsPolling] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [timeWindow, setTimeWindow] = useState(24); // hours
 
-  // Generate mock data for testing
-  const generateMockData = useCallback(() => {
-    const now = new Date();
-    const data = [];
-    const hoursBack = timeWindow;
-    const dataPoints = Math.min(hoursBack * 4, 96); // Max 96 points (15 min intervals for 24h)
-
-    for (let i = dataPoints - 1; i >= 0; i--) {
-      const time = new Date(now.getTime() - (i * hoursBack * 60 * 60 * 1000) / dataPoints);
-      const baseTemp = 75 + Math.sin(i / (dataPoints / 6)) * 15; // Sine wave pattern
-      const variation = (Math.random() - 0.5) * 3; // Random variation
-      const temperature = Math.max(65, Math.min(100, baseTemp + variation));
-
-      data.push({
-        time: time.toLocaleTimeString('en-US', {
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        temperature: Math.round(temperature * 10) / 10,
-        timestamp: time.getTime()
-      });
-    }
-    return data;
-  }, [timeWindow]);
-
   // Fetch real data from InfluxDB
-  const fetchRealData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       setError(null);
       const data = await fetchTemperatureData(timeWindow); // Use selected time window
@@ -56,23 +29,17 @@ function App() {
       setLastUpdate(new Date());
     } catch (err) {
       setError(err.message);
-      console.error('Failed to fetch real data:', err);
-      // Fallback to mock data on error
-      setTemperatureData(generateMockData());
+      console.error('Failed to fetch data:', err);
+      setTemperatureData([]); // Clear data on error
     }
-  }, [generateMockData, timeWindow]);
+  }, [timeWindow]);
 
-  // Load data based on current mode
+  // Load data
   const loadData = useCallback(async () => {
     setLoading(true);
-    if (useRealData) {
-      await fetchRealData();
-    } else {
-      setTemperatureData(generateMockData());
-      setLastUpdate(new Date());
-    }
+    await fetchData();
     setLoading(false);
-  }, [useRealData, fetchRealData, generateMockData]);
+  }, [fetchData]);
 
   // Initial data load
   useEffect(() => {
@@ -103,7 +70,7 @@ function App() {
           fontSize: '2em',
           fontWeight: '300'
         }}>
-          🔥 Wood Stove Temperature Monitor
+          Wood Stove Temperature Monitor
         </h1>
 
         {/* Controls */}
@@ -118,14 +85,6 @@ function App() {
           gap: '15px',
           alignItems: 'center'
         }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              type="checkbox"
-              checked={useRealData}
-              onChange={(e) => setUseRealData(e.target.checked)}
-            />
-            Use Real InfluxDB Data
-          </label>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
@@ -241,10 +200,10 @@ function App() {
                 <Line
                   type="monotone"
                   dataKey="temperature"
-                  stroke="#dc3545"
+                  stroke="#007bff"
                   strokeWidth={2.5}
                   dot={false}
-                  activeDot={{ r: 5, stroke: '#dc3545', strokeWidth: 2 }}
+                  activeDot={{ r: 5, stroke: '#007bff', strokeWidth: 2 }}
                   animationDuration={1000}
                   animationEasing="ease-in-out"
                 />
@@ -267,7 +226,7 @@ function App() {
             textAlign: 'center'
           }}>
             <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1em' }}>Current</h3>
-            <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#dc3545' }}>
+            <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#007bff' }}>
               {stats.current}°F
             </div>
           </div>
@@ -314,8 +273,8 @@ function App() {
 
         {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: '30px', color: '#666', fontSize: '0.9em' }}>
-          <p>🔥 Wood Stove Temperature Monitor | Deployed on GitHub Pages</p>
-          <p>Data source: {useRealData ? 'InfluxDB Cloud' : 'Mock Data'}</p>
+          <p>Wood Stove Temperature Monitor | Deployed on GitHub Pages</p>
+          <p>Data source: InfluxDB Cloud</p>
         </div>
       </div>
     </div>
