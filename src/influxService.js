@@ -49,20 +49,34 @@ export const fetchTemperatureData = async (hoursBack = 24) => {
 
 // Parse InfluxDB CSV response into chart-friendly format
 const parseInfluxCSV = (csvText) => {
+  console.log('Raw CSV response:', csvText); // Debug: log raw response
+
   const lines = csvText.trim().split('\n');
   if (lines.length < 2) return [];
 
   // Skip header lines and parse data
   const dataLines = lines.filter(line => !line.startsWith('#') && line.trim());
 
+  console.log('Data lines:', dataLines.slice(0, 3)); // Debug: first 3 data lines
+
   return dataLines.slice(1).map(line => {
     const columns = line.split(',');
-    if (columns.length < 6) return null;
+    console.log('Parsed columns:', columns); // Debug: show all columns
+
+    if (columns.length < 6) {
+      console.warn('Not enough columns:', columns.length, columns);
+      return null;
+    }
 
     const timestamp = columns[5]; // _time column
     const temperature = parseFloat(columns[4]); // _value column
 
-    if (!timestamp || isNaN(temperature)) return null;
+    console.log('Timestamp:', timestamp, 'Temperature:', temperature); // Debug values
+
+    if (!timestamp || isNaN(temperature)) {
+      console.warn('Invalid data - timestamp:', timestamp, 'temperature:', temperature);
+      return null;
+    }
 
     // Convert timestamp to readable format
     const date = new Date(timestamp);
@@ -72,11 +86,14 @@ const parseInfluxCSV = (csvText) => {
       minute: '2-digit'
     });
 
-    return {
+    const result = {
       time: timeString,
       temperature: Math.round(temperature * 10) / 10, // Round to 1 decimal
       timestamp: date.getTime()
     };
+
+    console.log('Parsed result:', result); // Debug final result
+    return result;
   }).filter(item => item !== null)
   .sort((a, b) => a.timestamp - b.timestamp); // Sort by time
 };
