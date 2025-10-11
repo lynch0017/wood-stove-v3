@@ -48,3 +48,5 @@ venv.bak/
 # Temporary files
 *.tmp
 *.temp
+
+influxdb-config.js
