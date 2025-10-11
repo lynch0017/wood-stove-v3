@@ -1,0 +1,40 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+      env:
+        # These will be available as VITE_ prefixed variables in the build
+        VITE_INFLUXDB_URL: ${{ vars.VITE_INFLUXDB_URL }}
+        VITE_INFLUXDB_TOKEN: ${{ vars.VITE_INFLUXDB_TOKEN }}
+        VITE_INFLUXDB_ORG: ${{ vars.VITE_INFLUXDB_ORG }}
+        VITE_INFLUXDB_BUCKET: ${{ vars.VITE_INFLUXDB_BUCKET }}
+
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/master'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
