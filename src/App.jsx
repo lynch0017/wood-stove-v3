@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   LineChart,
   Line,
@@ -7,118 +7,292 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
-  AreaChart,
-  Area
+  ResponsiveContainer
 } from 'recharts';
+import { fetchTemperatureData, getTemperatureStats } from './influxService';
 
 function App() {
-  // Sample temperature data - you can replace this with real data from your InfluxDB
-  const [temperatureData, setTemperatureData] = useState([
-    { time: '00:00', temperature: 72.5 },
-    { time: '01:00', temperature: 71.8 },
-    { time: '02:00', temperature: 70.2 },
-    { time: '03:00', temperature: 69.5 },
-    { time: '04:00', temperature: 68.9 },
-    { time: '05:00', temperature: 69.1 },
-    { time: '06:00', temperature: 70.5 },
-    { time: '07:00', temperature: 72.8 },
-    { time: '08:00', temperature: 75.2 },
-    { time: '09:00', temperature: 78.5 },
-    { time: '10:00', temperature: 82.1 },
-    { time: '11:00', temperature: 85.6 },
-    { time: '12:00', temperature: 88.9 },
-    { time: '13:00', temperature: 92.3 },
-    { time: '14:00', temperature: 94.7 },
-    { time: '15:00', temperature: 96.8 },
-    { time: '16:00', temperature: 98.2 },
-    { time: '17:00', temperature: 95.6 },
-    { time: '18:00', temperature: 91.4 },
-    { time: '19:00', temperature: 87.2 },
-    { time: '20:00', temperature: 83.5 },
-    { time: '21:00', temperature: 79.8 },
-    { time: '22:00', temperature: 76.3 },
-    { time: '23:00', temperature: 74.1 },
-  ]);
+  const [temperatureData, setTemperatureData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [useRealData, setUseRealData] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState(30); // seconds
+  const [isPolling, setIsPolling] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
-  // Simulate real-time data updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTemperatureData(prevData => {
-        const newData = [...prevData.slice(1)]; // Remove first element
-        const lastTemp = newData[newData.length - 1].temperature;
-        // Add small random variation to simulate real sensor data
-        const variation = (Math.random() - 0.5) * 2;
-        const newTemp = Math.max(65, Math.min(100, lastTemp + variation));
-        newData.push({
-          time: new Date().toLocaleTimeString('en-US', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          temperature: Math.round(newTemp * 10) / 10
-        });
-        return newData;
+  // Generate mock data for testing
+  const generateMockData = useCallback(() => {
+    const now = new Date();
+    const data = [];
+    for (let i = 23; i >= 0; i--) {
+      const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+      const baseTemp = 75 + Math.sin(i / 4) * 15; // Sine wave pattern
+      const variation = (Math.random() - 0.5) * 5; // Random variation
+      const temperature = Math.max(65, Math.min(100, baseTemp + variation));
+
+      data.push({
+        time: time.toLocaleTimeString('en-US', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        temperature: Math.round(temperature * 10) / 10,
+        timestamp: time.getTime()
       });
-    }, 5000); // Update every 5 seconds
-
-    return () => clearInterval(interval);
+    }
+    return data;
   }, []);
 
+  // Fetch real data from InfluxDB
+  const fetchRealData = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await fetchTemperatureData(24); // Last 24 hours
+      setTemperatureData(data);
+      setLastUpdate(new Date());
+    } catch (err) {
+      setError(err.message);
+      console.error('Failed to fetch real data:', err);
+      // Fallback to mock data on error
+      setTemperatureData(generateMockData());
+    }
+  }, [generateMockData]);
+
+  // Load data based on current mode
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    if (useRealData) {
+      await fetchRealData();
+    } else {
+      setTemperatureData(generateMockData());
+      setLastUpdate(new Date());
+    }
+    setLoading(false);
+  }, [useRealData, fetchRealData, generateMockData]);
+
+  // Initial data load
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Polling effect
+  useEffect(() => {
+    if (!isPolling) return;
+
+    const interval = setInterval(() => {
+      loadData();
+    }, pollingInterval * 1000);
+
+    return () => clearInterval(interval);
+  }, [loadData, isPolling, pollingInterval]);
+
+  // Get statistics
+  const stats = getTemperatureStats(temperatureData);
+
   return (
-    <div style={{ padding: '20px', backgroundColor: '#f5f5f5', height: '100vh' }}>
-      <h1 style={{ textAlign: 'center', color: '#333', marginBottom: '30px' }}>
-        Wood Stove Temperature Monitor
-      </h1>
+    <div style={{ padding: '15px', backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <h1 style={{
+          textAlign: 'center',
+          color: '#2c3e50',
+          marginBottom: '20px',
+          fontSize: '2em',
+          fontWeight: '300'
+        }}>
+          🔥 Wood Stove Temperature Monitor
+        </h1>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-        <h2>Temperature Over Time</h2>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={temperatureData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="time"
-              tick={{ fontSize: 12 }}
+        {/* Controls */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          padding: '15px',
+          marginBottom: '20px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '15px',
+          alignItems: 'center'
+        }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              checked={useRealData}
+              onChange={(e) => setUseRealData(e.target.checked)}
             />
-            <YAxis
-              label={{ value: 'Temperature (°F)', angle: -90, position: 'insideLeft' }}
-              domain={['dataMin - 5', 'dataMax + 5']}
-            />
-            <Tooltip
-              formatter={(value) => [`${value}°F`, 'Temperature']}
-              labelFormatter={(label) => `Time: ${label}`}
-            />
-            <Legend />
-            <Line
-              type="monotone"
-              dataKey="temperature"
-              stroke="#ff7300"
-              strokeWidth={3}
-              dot={{ fill: '#ff7300', strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, stroke: '#ff7300', strokeWidth: 2 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+            Use Real InfluxDB Data
+          </label>
 
-      <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-around' }}>
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-          <h3>Current Temperature</h3>
-          <p style={{ fontSize: '2em', color: '#ff7300', fontWeight: 'bold' }}>
-            {temperatureData[temperatureData.length - 1]?.temperature}°F
-          </p>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              checked={isPolling}
+              onChange={(e) => setIsPolling(e.target.checked)}
+            />
+            Auto-refresh
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Interval:</span>
+            <select
+              value={pollingInterval}
+              onChange={(e) => setPollingInterval(Number(e.target.value))}
+              disabled={!isPolling}
+            >
+              <option value={10}>10s</option>
+              <option value={30}>30s</option>
+              <option value={60}>1m</option>
+              <option value={300}>5m</option>
+              <option value={600}>10m</option>
+            </select>
+          </label>
+
+          <button
+            onClick={loadData}
+            disabled={loading}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: loading ? '#ccc' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {loading ? 'Loading...' : 'Refresh'}
+          </button>
+
+          {lastUpdate && (
+            <span style={{ fontSize: '0.9em', color: '#666' }}>
+              Last update: {lastUpdate.toLocaleTimeString()}
+            </span>
+          )}
         </div>
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-          <h3>Peak Temperature</h3>
-          <p style={{ fontSize: '2em', color: '#ff4444', fontWeight: 'bold' }}>
-            {Math.max(...temperatureData.map(d => d.temperature))}°F
-          </p>
+
+        {/* Error message */}
+        {error && (
+          <div style={{
+            backgroundColor: '#f8d7da',
+            color: '#721c24',
+            padding: '10px',
+            borderRadius: '4px',
+            marginBottom: '20px',
+            border: '1px solid #f5c6cb'
+          }}>
+            ⚠️ Error loading real data: {error}
+            <br />
+            <small>Falling back to mock data. Check your InfluxDB configuration.</small>
+          </div>
+        )}
+
+        {/* Temperature Chart */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          padding: '20px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          marginBottom: '20px'
+        }}>
+          <h2 style={{ marginTop: 0, color: '#2c3e50' }}>Temperature Trend</h2>
+          {temperatureData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <LineChart data={temperatureData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fontSize: 11, fill: '#666' }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  label={{ value: '°F', angle: -90, position: 'insideLeft' }}
+                  domain={['dataMin - 2', 'dataMax + 2']}
+                  tick={{ fontSize: 11, fill: '#666' }}
+                />
+                <Tooltip
+                  formatter={(value) => [`${value}°F`, 'Temperature']}
+                  labelFormatter={(label) => `Time: ${label}`}
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="temperature"
+                  stroke="#dc3545"
+                  strokeWidth={2.5}
+                  dot={{ fill: '#dc3545', strokeWidth: 1, r: 3 }}
+                  activeDot={{ r: 5, stroke: '#dc3545', strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
+              {loading ? 'Loading temperature data...' : 'No data available'}
+            </div>
+          )}
         </div>
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-          <h3>Average Temperature</h3>
-          <p style={{ fontSize: '2em', color: '#4444ff', fontWeight: 'bold' }}>
-            {(temperatureData.reduce((sum, d) => sum + d.temperature, 0) / temperatureData.length).toFixed(1)}°F
-          </p>
+
+        {/* Statistics Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1em' }}>Current</h3>
+            <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#dc3545' }}>
+              {stats.current}°F
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1em' }}>Peak</h3>
+            <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#fd7e14' }}>
+              {stats.peak}°F
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1em' }}>Average</h3>
+            <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#007bff' }}>
+              {stats.average}°F
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1em' }}>Data Points</h3>
+            <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#28a745' }}>
+              {stats.count}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ textAlign: 'center', marginTop: '30px', color: '#666', fontSize: '0.9em' }}>
+          <p>🔥 Wood Stove Temperature Monitor | Deployed on GitHub Pages</p>
+          <p>Data source: {useRealData ? 'InfluxDB Cloud' : 'Mock Data'}</p>
         </div>
       </div>
     </div>
