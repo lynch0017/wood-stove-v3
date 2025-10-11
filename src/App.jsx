@@ -19,15 +19,19 @@ function App() {
   const [pollingInterval, setPollingInterval] = useState(30); // seconds
   const [isPolling, setIsPolling] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [timeWindow, setTimeWindow] = useState(24); // hours
 
   // Generate mock data for testing
   const generateMockData = useCallback(() => {
     const now = new Date();
     const data = [];
-    for (let i = 23; i >= 0; i--) {
-      const time = new Date(now.getTime() - i * 60 * 60 * 1000);
-      const baseTemp = 75 + Math.sin(i / 4) * 15; // Sine wave pattern
-      const variation = (Math.random() - 0.5) * 5; // Random variation
+    const hoursBack = timeWindow;
+    const dataPoints = Math.min(hoursBack * 4, 96); // Max 96 points (15 min intervals for 24h)
+
+    for (let i = dataPoints - 1; i >= 0; i--) {
+      const time = new Date(now.getTime() - (i * hoursBack * 60 * 60 * 1000) / dataPoints);
+      const baseTemp = 75 + Math.sin(i / (dataPoints / 6)) * 15; // Sine wave pattern
+      const variation = (Math.random() - 0.5) * 3; // Random variation
       const temperature = Math.max(65, Math.min(100, baseTemp + variation));
 
       data.push({
@@ -41,13 +45,13 @@ function App() {
       });
     }
     return data;
-  }, []);
+  }, [timeWindow]);
 
   // Fetch real data from InfluxDB
   const fetchRealData = useCallback(async () => {
     try {
       setError(null);
-      const data = await fetchTemperatureData(24); // Last 24 hours
+      const data = await fetchTemperatureData(timeWindow); // Use selected time window
       setTemperatureData(data);
       setLastUpdate(new Date());
     } catch (err) {
@@ -56,7 +60,7 @@ function App() {
       // Fallback to mock data on error
       setTemperatureData(generateMockData());
     }
-  }, [generateMockData]);
+  }, [generateMockData, timeWindow]);
 
   // Load data based on current mode
   const loadData = useCallback(async () => {
@@ -147,6 +151,23 @@ function App() {
             </select>
           </label>
 
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Time Window:</span>
+            <select
+              value={timeWindow}
+              onChange={(e) => setTimeWindow(Number(e.target.value))}
+            >
+              <option value={48}>2 days</option>
+              <option value={24}>1 day</option>
+              <option value={12}>12 hours</option>
+              <option value={8}>8 hours</option>
+              <option value={4}>4 hours</option>
+              <option value={1}>1 hour</option>
+              <option value={0.5}>30 min</option>
+              <option value={0.25}>15 min</option>
+            </select>
+          </label>
+
           <button
             onClick={loadData}
             disabled={loading}
@@ -222,8 +243,10 @@ function App() {
                   dataKey="temperature"
                   stroke="#dc3545"
                   strokeWidth={2.5}
-                  dot={{ fill: '#dc3545', strokeWidth: 1, r: 3 }}
+                  dot={false}
                   activeDot={{ r: 5, stroke: '#dc3545', strokeWidth: 2 }}
+                  animationDuration={1000}
+                  animationEasing="ease-in-out"
                 />
               </LineChart>
             </ResponsiveContainer>
