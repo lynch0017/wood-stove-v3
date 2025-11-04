@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 import influxdb_client
 from influxdb_client.client.query_api import QueryApi
@@ -20,7 +22,7 @@ else:
     print("  Please create a .env file with your API keys")
 
 # Check for required environment variables
-required_vars = ['OPENAI_API_KEY', 'INFLUXDB_URL', 'INFLUXDB_TOKEN', 'INFLUXDB_ORG', 'INFLUXDB_BUCKET']
+required_vars = ['OPENAI_API_KEY', 'INFLUXDB_URL', 'INFLUXDB_TOKEN', 'INFLUXDB_ORG', 'INFLUXDB_BUCKET', 'CHAT_USERNAME', 'CHAT_PASSWORD']
 missing_vars = [var for var in required_vars if not os.getenv(var)]
 
 if missing_vars:
@@ -35,7 +37,19 @@ print("✓ All required environment variables found")
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React app
+auth = HTTPBasicAuth()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# Store hashed password for authentication
+users = {
+    os.getenv('CHAT_USERNAME'): generate_password_hash(os.getenv('CHAT_PASSWORD'))
+}
+
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and check_password_hash(users.get(username), password):
+        return username
+    return None
 
 # InfluxDB setup with increased timeout
 influx_client = influxdb_client.InfluxDBClient(
@@ -254,6 +268,7 @@ available_functions = {
 }
 
 @app.route('/api/chat', methods=['POST'])
+@auth.login_required
 def chat():
     user_message = request.json.get('message')
     conversation_history = request.json.get('history', [])

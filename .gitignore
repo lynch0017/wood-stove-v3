@@ -55,3 +55,6 @@ venv.bak/
 influxdb-config.js
 
 budget/
+
+AUTH_SETUP_GUIDE.md
+QUICK_START_AUTH.md

@@ -15,6 +15,9 @@ const ChatWidget = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationHistory, setConversationHistory] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authPassword, setAuthPassword] = useState('');
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -29,6 +32,12 @@ const ChatWidget = () => {
     const message = messageText || inputValue.trim();
     if (!message || isLoading) return;
 
+    // Check if authenticated
+    if (!isAuthenticated) {
+      setShowAuthPrompt(true);
+      return;
+    }
+
     // Add user message to UI
     const newMessages = [...messages, { role: 'user', content: message }];
     setMessages(newMessages);
@@ -36,16 +45,32 @@ const ChatWidget = () => {
     setIsLoading(true);
 
     try {
+      // Create Basic Auth header
+      const credentials = btoa(`admin:${authPassword}`);
+      
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${credentials}`
         },
         body: JSON.stringify({
           message: message,
           history: conversationHistory
         })
       });
+
+      if (response.status === 401) {
+        // Authentication failed
+        setIsAuthenticated(false);
+        setAuthPassword('');
+        setMessages([...newMessages, { 
+          role: 'assistant', 
+          content: 'Authentication failed. Please enter the correct password.' 
+        }]);
+        setShowAuthPrompt(true);
+        return;
+      }
 
       const data = await response.json();
 
@@ -56,13 +81,31 @@ const ChatWidget = () => {
     } catch (error) {
       setMessages([...newMessages, { 
         role: 'assistant', 
-        content: 'Sorry, I had trouble connecting to the chat service. Make sure the Flask backend is running on port 5000.' 
+        content: 'Sorry, I had trouble connecting to the chat service. Please check your connection.' 
       }]);
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleAuthSubmit = () => {
+    if (authPassword.trim()) {
+      setIsAuthenticated(true);
+      setShowAuthPrompt(false);
+      // Store in sessionStorage so it persists during the session
+      sessionStorage.setItem('chatAuth', authPassword);
+    }
+  };
+
+  // Check for stored auth on mount
+  useEffect(() => {
+    const storedAuth = sessionStorage.getItem('chatAuth');
+    if (storedAuth) {
+      setAuthPassword(storedAuth);
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -112,6 +155,95 @@ const ChatWidget = () => {
         </button>
       )}
 
+      {/* Authentication Prompt */}
+      {showAuthPrompt && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '15px',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>🔒 Authentication Required</h3>
+            <p style={{ margin: '0 0 20px 0', color: '#666', fontSize: '14px' }}>
+              Enter the password to use the chat feature:
+            </p>
+            <input
+              type="password"
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleAuthSubmit();
+                }
+              }}
+              placeholder="Enter password"
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                marginBottom: '15px',
+                boxSizing: 'border-box',
+                outline: 'none'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handleAuthSubmit}
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Submit
+              </button>
+              <button
+                onClick={() => {
+                  setShowAuthPrompt(false);
+                  setAuthPassword('');
+                }}
+                style={{
+                  flex: 1,
+                  background: '#f1f3f4',
+                  color: '#333',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Chat Window */}
       {isOpen && (
         <div style={{
@@ -138,7 +270,7 @@ const ChatWidget = () => {
             alignItems: 'center'
           }}>
             <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-              🔥 Wood Stove Assistant
+              🔥 Wood Stove Assistant {isAuthenticated && '🔓'}
             </div>
             <button
               onClick={() => setIsOpen(false)}
