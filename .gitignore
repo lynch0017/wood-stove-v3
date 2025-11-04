@@ -14,6 +14,9 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+open_ai.txt
+env_template.txt
+add_vite_vars.txt
 
 # InfluxDB configuration (contains sensitive credentials)
 influxdb-config.js
