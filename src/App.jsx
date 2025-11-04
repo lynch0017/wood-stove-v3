@@ -25,6 +25,7 @@ function App() {
   const [isPolling, setIsPolling] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [timeWindow, setTimeWindow] = useState(24); // hours
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   // Prediction state
   const [isPredictionMode, setIsPredictionMode] = useState(false);
@@ -39,6 +40,7 @@ function App() {
   const [mouseDownTimestamp, setMouseDownTimestamp] = useState(null);
   const [predictionAnalysis, setPredictionAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [isPredictionPanelExpanded, setIsPredictionPanelExpanded] = useState(false);
 
   // Fetch real data from InfluxDB
   const fetchData = useCallback(async () => {
@@ -254,30 +256,62 @@ function App() {
     });
   }
 
+  // Theme colors
+  const theme = {
+    background: isDarkMode ? '#1a1a1a' : '#f8f9fa',
+    cardBackground: isDarkMode ? '#2d2d2d' : 'white',
+    text: isDarkMode ? '#e0e0e0' : '#2c3e50',
+    textSecondary: isDarkMode ? '#a0a0a0' : '#666',
+    border: isDarkMode ? '#404040' : '#dee2e6',
+    chartGrid: isDarkMode ? '#404040' : '#e0e0e0',
+    chartText: isDarkMode ? '#a0a0a0' : '#666'
+  };
+
   return (
-    <div style={{ padding: '15px', backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ padding: '15px', backgroundColor: theme.background, minHeight: '100vh', fontFamily: 'Arial, sans-serif', transition: 'background-color 0.3s' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{
-          textAlign: 'center',
-          color: '#2c3e50',
-          marginBottom: '20px',
-          fontSize: '2em',
-          fontWeight: '300'
-        }}>
-          Wood Stove Temperature Monitor
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h1 style={{
+            textAlign: 'center',
+            color: theme.text,
+            margin: 0,
+            fontSize: '2em',
+            fontWeight: '300',
+            flex: 1
+          }}>
+            Wood Stove Temperature Monitor
+          </h1>
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: theme.cardBackground,
+              color: theme.text,
+              border: `1px solid ${theme.border}`,
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '20px',
+              transition: 'all 0.3s'
+            }}
+            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
+        </div>
 
         {/* Controls */}
         <div style={{
-          backgroundColor: 'white',
+          backgroundColor: theme.cardBackground,
           borderRadius: '8px',
           padding: '15px',
           marginBottom: '20px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          boxShadow: isDarkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
           display: 'flex',
           flexWrap: 'wrap',
           gap: '15px',
-          alignItems: 'center'
+          alignItems: 'center',
+          color: theme.text,
+          transition: 'all 0.3s'
         }}>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -337,7 +371,7 @@ function App() {
           </button>
 
           {lastUpdate && (
-            <span style={{ fontSize: '0.9em', color: '#666' }}>
+            <span style={{ fontSize: '0.9em', color: theme.textSecondary }}>
               Last update: {lastUpdate.toLocaleTimeString()}
             </span>
           )}
@@ -346,12 +380,12 @@ function App() {
         {/* Error message */}
         {error && (
           <div style={{
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
+            backgroundColor: isDarkMode ? '#4a2020' : '#f8d7da',
+            color: isDarkMode ? '#ffb3b3' : '#721c24',
             padding: '10px',
             borderRadius: '4px',
             marginBottom: '20px',
-            border: '1px solid #f5c6cb'
+            border: `1px solid ${isDarkMode ? '#6a3030' : '#f5c6cb'}`
           }}>
             ⚠️ Error loading real data: {error}
             <br />
@@ -360,26 +394,58 @@ function App() {
         )}
 
         {/* Prediction Panel */}
-        <PredictionPanel
-          onGeneratePrediction={handleGeneratePrediction}
-          isTraining={isTraining}
-          trainingProgress={trainingProgress}
-          isPredictionMode={isPredictionMode}
-          onTogglePredictionMode={handleTogglePredictionMode}
-          hasSelection={selectedData !== null}
-        />
+        <div style={{
+          backgroundColor: theme.cardBackground,
+          borderRadius: '8px',
+          padding: '15px',
+          marginBottom: '20px',
+          boxShadow: isDarkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+          transition: 'all 0.3s'
+        }}>
+          <div 
+            onClick={() => setIsPredictionPanelExpanded(!isPredictionPanelExpanded)}
+            style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+          >
+            <h2 style={{ margin: 0, color: theme.text }}>🔮 ML Prediction</h2>
+            <span style={{ fontSize: '24px', color: theme.text }}>
+              {isPredictionPanelExpanded ? '▼' : '▶'}
+            </span>
+          </div>
+          
+          {isPredictionPanelExpanded && (
+            <div style={{ marginTop: '15px' }}>
+              <PredictionPanel
+                onGeneratePrediction={handleGeneratePrediction}
+                isTraining={isTraining}
+                trainingProgress={trainingProgress}
+                isPredictionMode={isPredictionMode}
+                onTogglePredictionMode={handleTogglePredictionMode}
+                hasSelection={selectedData !== null}
+                theme={theme}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Prediction Analysis */}
         {showAnalysis && predictionAnalysis && (
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: theme.cardBackground,
             borderRadius: '8px',
             padding: '20px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            marginBottom: '20px'
+            boxShadow: isDarkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+            marginBottom: '20px',
+            transition: 'all 0.3s'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h2 style={{ margin: 0, color: '#2c3e50' }}>Prediction Analysis</h2>
+              <h2 style={{ margin: 0, color: theme.text }}>Prediction Analysis</h2>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
                   onClick={handleAskAI}
@@ -416,10 +482,11 @@ function App() {
             {generateQuickSummary(predictionAnalysis) && (
               <div style={{
                 padding: '15px',
-                backgroundColor: '#e7f3ff',
+                backgroundColor: isDarkMode ? '#1a3a4a' : '#e7f3ff',
                 borderRadius: '4px',
                 marginBottom: '15px',
-                borderLeft: '4px solid #007bff'
+                borderLeft: '4px solid #007bff',
+                color: theme.text
               }}>
                 <strong>Quick Summary:</strong> {generateQuickSummary(predictionAnalysis)}
               </div>
@@ -428,26 +495,26 @@ function App() {
             {/* Detailed Metrics */}
             {predictionAnalysis.metrics && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '15px' }}>
-                <div style={{ padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Peak Temperature</div>
+                <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1a1a1a' : '#f8f9fa', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '12px', color: theme.textSecondary, marginBottom: '4px' }}>Peak Temperature</div>
                   <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#fd7e14' }}>
                     {predictionAnalysis.metrics.predictedMax}°F
                   </div>
                 </div>
-                <div style={{ padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Average Temperature</div>
+                <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1a1a1a' : '#f8f9fa', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '12px', color: theme.textSecondary, marginBottom: '4px' }}>Average Temperature</div>
                   <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#007bff' }}>
                     {predictionAnalysis.metrics.predictedAvg}°F
                   </div>
                 </div>
-                <div style={{ padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Active Burn Time</div>
+                <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1a1a1a' : '#f8f9fa', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '12px', color: theme.textSecondary, marginBottom: '4px' }}>Active Burn Time</div>
                   <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>
                     {predictionAnalysis.metrics.activeBurnHours}h
                   </div>
                 </div>
-                <div style={{ padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Reload In</div>
+                <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1a1a1a' : '#f8f9fa', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '12px', color: theme.textSecondary, marginBottom: '4px' }}>Reload In</div>
                   <div style={{ fontSize: '24px', fontWeight: 'bold', color: predictionAnalysis.metrics.hoursUntilReload < 4 ? '#dc3545' : '#28a745' }}>
                     {predictionAnalysis.metrics.hoursUntilReload}h
                   </div>
@@ -457,17 +524,18 @@ function App() {
 
             {/* Full Summary */}
             <details style={{ marginTop: '15px' }}>
-              <summary style={{ cursor: 'pointer', fontWeight: 'bold', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold', padding: '10px', backgroundColor: isDarkMode ? '#1a1a1a' : '#f8f9fa', borderRadius: '4px', color: theme.text }}>
                 View Detailed Analysis
               </summary>
               <div style={{
                 marginTop: '10px',
                 padding: '15px',
-                backgroundColor: '#f8f9fa',
+                backgroundColor: isDarkMode ? '#1a1a1a' : '#f8f9fa',
                 borderRadius: '4px',
                 whiteSpace: 'pre-wrap',
                 fontSize: '14px',
-                lineHeight: '1.6'
+                lineHeight: '1.6',
+                color: theme.text
               }}>
                 {generatePredictionSummary(predictionAnalysis)}
               </div>
@@ -477,13 +545,14 @@ function App() {
 
         {/* Temperature Chart */}
         <div style={{
-          backgroundColor: 'white',
+          backgroundColor: theme.cardBackground,
           borderRadius: '8px',
           padding: '20px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          marginBottom: '20px'
+          boxShadow: isDarkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+          marginBottom: '20px',
+          transition: 'all 0.3s'
         }}>
-          <h2 style={{ marginTop: 0, color: '#2c3e50' }}>
+          <h2 style={{ marginTop: 0, color: theme.text }}>
             Temperature Trend
             {isPredictionMode && (
               <span style={{ fontSize: '14px', color: '#28a745', marginLeft: '15px' }}>
@@ -500,16 +569,18 @@ function App() {
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke={theme.chartGrid} />
                 <XAxis
                   dataKey="time"
-                  tick={{ fontSize: 11, fill: '#666' }}
+                  tick={{ fontSize: 11, fill: theme.chartText }}
                   interval="preserveStartEnd"
+                  stroke={theme.chartText}
                 />
                 <YAxis
-                  label={{ value: '°F', angle: -90, position: 'insideLeft' }}
+                  label={{ value: '°F', angle: -90, position: 'insideLeft', fill: theme.chartText }}
                   domain={['dataMin - 10', 'dataMax + 10']}
-                  tick={{ fontSize: 11, fill: '#666' }}
+                  tick={{ fontSize: 11, fill: theme.chartText }}
+                  stroke={theme.chartText}
                 />
                 <Tooltip
                   formatter={(value, name) => {
@@ -521,9 +592,10 @@ function App() {
                   }}
                   labelFormatter={(label) => `Time: ${label}`}
                   contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px'
+                    backgroundColor: theme.cardBackground,
+                    border: `1px solid ${theme.border}`,
+                    borderRadius: '4px',
+                    color: theme.text
                   }}
                 />
                 <Legend />
@@ -592,7 +664,7 @@ function App() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
+            <div style={{ textAlign: 'center', padding: '50px', color: theme.textSecondary }}>
               {loading ? 'Loading temperature data...' : 'No data available'}
             </div>
           )}
@@ -601,52 +673,56 @@ function App() {
         {/* Statistics Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: theme.cardBackground,
             padding: '20px',
             borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            textAlign: 'center'
+            boxShadow: isDarkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+            textAlign: 'center',
+            transition: 'all 0.3s'
           }}>
-            <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1em' }}>Current</h3>
+            <h3 style={{ margin: '0 0 10px 0', color: theme.text, fontSize: '1.1em' }}>Current</h3>
             <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#007bff' }}>
               {stats.current}°F
             </div>
           </div>
 
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: theme.cardBackground,
             padding: '20px',
             borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            textAlign: 'center'
+            boxShadow: isDarkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+            textAlign: 'center',
+            transition: 'all 0.3s'
           }}>
-            <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1em' }}>Peak</h3>
+            <h3 style={{ margin: '0 0 10px 0', color: theme.text, fontSize: '1.1em' }}>Peak</h3>
             <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#fd7e14' }}>
               {stats.peak}°F
             </div>
           </div>
 
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: theme.cardBackground,
             padding: '20px',
             borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            textAlign: 'center'
+            boxShadow: isDarkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+            textAlign: 'center',
+            transition: 'all 0.3s'
           }}>
-            <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1em' }}>Average</h3>
+            <h3 style={{ margin: '0 0 10px 0', color: theme.text, fontSize: '1.1em' }}>Average</h3>
             <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#007bff' }}>
               {stats.average}°F
             </div>
           </div>
 
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: theme.cardBackground,
             padding: '20px',
             borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            textAlign: 'center'
+            boxShadow: isDarkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+            textAlign: 'center',
+            transition: 'all 0.3s'
           }}>
-            <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1em' }}>Data Points</h3>
+            <h3 style={{ margin: '0 0 10px 0', color: theme.text, fontSize: '1.1em' }}>Data Points</h3>
             <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#28a745' }}>
               {stats.count}
             </div>
@@ -654,7 +730,7 @@ function App() {
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '30px', color: '#666', fontSize: '0.9em' }}>
+        <div style={{ textAlign: 'center', marginTop: '30px', color: theme.textSecondary, fontSize: '0.9em' }}>
           <p>Wood Stove Temperature Monitor | Deployed on GitHub Pages</p>
           <p>Data source: InfluxDB Cloud</p>
         </div>

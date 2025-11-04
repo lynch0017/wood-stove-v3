@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 // API URL - uses environment variable in production, localhost in development
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+console.log('ChatWidget using API_URL:', API_URL);
 
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);

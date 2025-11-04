@@ -8,7 +8,9 @@ function PredictionPanel({
   trainingProgress,
   isPredictionMode,
   onTogglePredictionMode,
-  hasSelection 
+  hasSelection,
+  theme = { text: '#2c3e50', textSecondary: '#666', cardBackground: 'white', border: '#dee2e6' },
+  isDarkMode = false
 }) {
   const [outdoorTemp, setOutdoorTemp] = useState(32);
   const [outdoorTempManual, setOutdoorTempManual] = useState(false);
@@ -92,20 +94,14 @@ function PredictionPanel({
   ]);
 
   return (
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      padding: '20px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      marginBottom: '20px'
-    }}>
+    <div>
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
         marginBottom: '20px' 
       }}>
-        <h2 style={{ margin: 0, color: '#2c3e50' }}>Burn Prediction</h2>
+        <h2 style={{ margin: 0, color: theme.text }}>Burn Prediction</h2>
         <button
           onClick={onTogglePredictionMode}
           style={{
@@ -125,10 +121,11 @@ function PredictionPanel({
       {!isPredictionMode && (
         <div style={{
           padding: '15px',
-          backgroundColor: '#e7f3ff',
+          backgroundColor: isDarkMode ? '#1a3a4a' : '#e7f3ff',
           borderRadius: '4px',
           marginBottom: '20px',
-          border: '1px solid #b3d9ff'
+          border: `1px solid ${isDarkMode ? '#2a5a6a' : '#b3d9ff'}`,
+          color: theme.text
         }}>
           Click "Enable Selection Mode" then drag on the chart to select a historical burn pattern for training.
         </div>
@@ -137,10 +134,11 @@ function PredictionPanel({
       {isPredictionMode && !hasSelection && (
         <div style={{
           padding: '15px',
-          backgroundColor: '#fff3cd',
+          backgroundColor: isDarkMode ? '#4a3a1a' : '#fff3cd',
           borderRadius: '4px',
           marginBottom: '20px',
-          border: '1px solid #ffc107'
+          border: `1px solid ${isDarkMode ? '#6a5a2a' : '#ffc107'}`,
+          color: theme.text
         }}>
           Drag on the chart above to select a time range (at least 5 hours recommended).
         </div>
@@ -149,10 +147,11 @@ function PredictionPanel({
       {hasSelection && (
         <div style={{
           padding: '15px',
-          backgroundColor: '#d4edda',
+          backgroundColor: isDarkMode ? '#1a4a2a' : '#d4edda',
           borderRadius: '4px',
           marginBottom: '20px',
-          border: '1px solid #c3e6cb'
+          border: `1px solid ${isDarkMode ? '#2a6a3a' : '#c3e6cb'}`,
+          color: theme.text
         }}>
           Historical pattern selected! Configure parameters below and generate prediction.
         </div>
@@ -166,7 +165,7 @@ function PredictionPanel({
       }}>
         {/* Outdoor Temperature */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#2c3e50' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: theme.text }}>
             Outdoor Temperature
           </label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -180,12 +179,14 @@ function PredictionPanel({
               style={{
                 flex: 1,
                 padding: '8px',
-                border: '1px solid #ddd',
+                border: `1px solid ${theme.border}`,
                 borderRadius: '4px',
-                fontSize: '14px'
+                fontSize: '14px',
+                backgroundColor: theme.cardBackground,
+                color: theme.text
               }}
             />
-            <span style={{ color: '#666' }}>°F</span>
+            <span style={{ color: theme.textSecondary }}>°F</span>
           </div>
           <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
             <button
@@ -204,7 +205,7 @@ function PredictionPanel({
               {fetchingWeather ? 'Fetching...' : 'Auto-Fetch'}
             </button>
             {weatherTimestamp && (
-              <span style={{ fontSize: '11px', color: '#666', alignSelf: 'center' }}>
+              <span style={{ fontSize: '11px', color: theme.textSecondary, alignSelf: 'center' }}>
                 {formatCacheAge(weatherTimestamp)}
               </span>
             )}
@@ -218,7 +219,7 @@ function PredictionPanel({
 
         {/* Firebox Fill Level */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#2c3e50' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: theme.text }}>
             Firebox Fill Level: {fillLevel}%
           </label>
           <input
@@ -230,7 +231,7 @@ function PredictionPanel({
             onChange={(e) => setFillLevel(parseInt(e.target.value))}
             style={{ width: '100%' }}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#666' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: theme.textSecondary }}>
             <span>Empty</span>
             <span>Half</span>
             <span>Full</span>
@@ -239,7 +240,7 @@ function PredictionPanel({
 
         {/* Prediction Window */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#2c3e50' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: theme.text }}>
             Prediction Window
           </label>
           <select
@@ -248,9 +249,11 @@ function PredictionPanel({
             style={{
               width: '100%',
               padding: '8px',
-              border: '1px solid #ddd',
+              border: `1px solid ${theme.border}`,
               borderRadius: '4px',
-              fontSize: '14px'
+              fontSize: '14px',
+              backgroundColor: theme.cardBackground,
+              color: theme.text
             }}
           >
             <option value={4}>4 hours</option>
@@ -264,14 +267,14 @@ function PredictionPanel({
 
       {/* Wood Species Mix */}
       <div style={{ marginBottom: '20px' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#2c3e50', fontSize: '1.1em' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '15px', color: theme.text, fontSize: '1.1em' }}>
           Wood Species Mix
         </h3>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           {/* Species 1 */}
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#2c3e50' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: theme.text }}>
               Primary Species
             </label>
             <select
@@ -280,10 +283,12 @@ function PredictionPanel({
               style={{
                 width: '100%',
                 padding: '8px',
-                border: '1px solid #ddd',
+                border: `1px solid ${theme.border}`,
                 borderRadius: '4px',
                 fontSize: '14px',
-                marginBottom: '8px'
+                marginBottom: '8px',
+                backgroundColor: theme.cardBackground,
+                color: theme.text
               }}
             >
               {speciesList.map(species => (
@@ -291,7 +296,7 @@ function PredictionPanel({
               ))}
             </select>
             <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#666' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: theme.textSecondary }}>
                 Percentage: {percentage1}%
               </label>
               <input
@@ -308,7 +313,7 @@ function PredictionPanel({
 
           {/* Species 2 */}
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#2c3e50' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: theme.text }}>
               Secondary Species
             </label>
             <select
@@ -317,10 +322,12 @@ function PredictionPanel({
               style={{
                 width: '100%',
                 padding: '8px',
-                border: '1px solid #ddd',
+                border: `1px solid ${theme.border}`,
                 borderRadius: '4px',
                 fontSize: '14px',
-                marginBottom: '8px'
+                marginBottom: '8px',
+                backgroundColor: theme.cardBackground,
+                color: theme.text
               }}
             >
               {speciesList.map(species => (
@@ -328,7 +335,7 @@ function PredictionPanel({
               ))}
             </select>
             <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#666' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: theme.textSecondary }}>
                 Percentage: {percentage2}%
               </label>
               <input
@@ -347,10 +354,10 @@ function PredictionPanel({
         <div style={{ 
           marginTop: '12px', 
           padding: '10px', 
-          backgroundColor: '#f8f9fa', 
+          backgroundColor: isDarkMode ? '#1a1a1a' : '#f8f9fa', 
           borderRadius: '4px',
           fontSize: '13px',
-          color: '#495057'
+          color: theme.text
         }}>
           Mix BTU Rating: <strong>{mixBTU.toFixed(1)} MBTU/cord</strong>
         </div>
@@ -384,7 +391,7 @@ function PredictionPanel({
             justifyContent: 'space-between',
             marginBottom: '8px',
             fontSize: '13px',
-            color: '#666'
+            color: theme.textSecondary
           }}>
             <span>Training Progress</span>
             <span>Epoch {trainingProgress.epoch} / {trainingProgress.totalEpochs}</span>
@@ -392,7 +399,7 @@ function PredictionPanel({
           <div style={{
             width: '100%',
             height: '8px',
-            backgroundColor: '#e9ecef',
+            backgroundColor: isDarkMode ? '#404040' : '#e9ecef',
             borderRadius: '4px',
             overflow: 'hidden'
           }}>
@@ -404,7 +411,7 @@ function PredictionPanel({
             }} />
           </div>
           {trainingProgress.loss && (
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: theme.textSecondary, marginTop: '4px' }}>
               Loss: {trainingProgress.loss.toFixed(4)} | Val Loss: {trainingProgress.valLoss?.toFixed(4)}
             </div>
           )}
@@ -415,11 +422,11 @@ function PredictionPanel({
       <div style={{
         marginTop: '20px',
         padding: '12px',
-        backgroundColor: '#fff3cd',
+        backgroundColor: isDarkMode ? '#4a3a1a' : '#fff3cd',
         borderRadius: '4px',
-        border: '1px solid #ffc107',
+        border: `1px solid ${isDarkMode ? '#6a5a2a' : '#ffc107'}`,
         fontSize: '12px',
-        color: '#856404'
+        color: isDarkMode ? '#ffcc80' : '#856404'
       }}>
         <strong>Experimental Feature:</strong> Predictions are based on machine learning and may not be accurate. 
         Use for entertainment and learning purposes only. Actual burn patterns depend on many factors.
