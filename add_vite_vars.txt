@@ -1,0 +1,34 @@
+# Instructions: Add these lines to your .env file
+# These VITE_ prefixed variables are needed for your React app to access InfluxDB
+
+# Copy the values from your existing variables and add these lines:
+
+VITE_INFLUXDB_URL=<copy your INFLUXDB_URL value here>
+VITE_INFLUXDB_TOKEN=<copy your INFLUXDB_TOKEN value here>
+VITE_INFLUXDB_ORG=<copy your INFLUXDB_ORG value here>
+VITE_INFLUXDB_BUCKET=<copy your INFLUXDB_BUCKET value here>
+
+# Your complete .env file should look like this:
+
+# For Python/Flask backend
+INFLUXDB_URL=your_value
+INFLUXDB_TOKEN=your_value
+INFLUXDB_ORG=your_value
+INFLUXDB_BUCKET=your_value
+OPENAI_API_KEY=your_value
+
+# For React/Vite frontend (same values as above, just with VITE_ prefix)
+VITE_INFLUXDB_URL=your_value
+VITE_INFLUXDB_TOKEN=your_value
+VITE_INFLUXDB_ORG=your_value
+VITE_INFLUXDB_BUCKET=your_value
+
+# After adding these:
+# 1. Save the .env file
+# 2. RESTART your React dev server (npm run dev)
+#    - Stop it with Ctrl+C
+#    - Start it again with: npm run dev
+# 3. The InfluxDB error should be gone!
+
+# Note: Vite only loads environment variables at startup, so you MUST restart the dev server
+
