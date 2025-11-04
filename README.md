@@ -124,7 +124,7 @@ npm run deploy   # Deploy to GitHub Pages
 
 ## 🔒 Security Notes
 
-- InfluxDB credentials are stored client-side (visible in browser)
+- InfluxDB read only credentials are stored client-side (visible in browser)
 - For production use, consider a proxy server or serverless functions
 - The dashboard works with mock data by default for security
 
