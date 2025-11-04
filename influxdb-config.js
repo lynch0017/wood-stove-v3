@@ -6,7 +6,7 @@ export const INFLUXDB_CONFIG = {
   url: 'https://us-east-1-1.aws.cloud2.influxdata.com',
 
   // InfluxDB API Token (generate from InfluxDB Cloud dashboard)
-  token: 'Z3Oqnu_Sk0QLV-jyf0kx1sMEzOZ9hABj34-RiXCLxAxCMm28PbIuMdUkBmbBLpcHbPO2zXaIfsBRuaEWnc2W9A==',
+
 
   // InfluxDB Organization name
   org: 'Dev Team',

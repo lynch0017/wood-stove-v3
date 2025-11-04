@@ -46,7 +46,7 @@ jobs:
       env:
         # These will be available as VITE_ prefixed variables in the build
         VITE_INFLUXDB_URL: ${{ vars.VITE_INFLUXDB_URL }}
-        VITE_INFLUXDB_TOKEN: ${{ vars.VITE_INFLUXDB_TOKEN }}
+        VITE_INFLUXDB_TOKEN: ${{ secrets.VITE_INFLUXDB_TOKEN }}
         VITE_INFLUXDB_ORG: ${{ vars.VITE_INFLUXDB_ORG }}
         VITE_INFLUXDB_BUCKET: ${{ vars.VITE_INFLUXDB_BUCKET }}
         VITE_API_URL: ${{ vars.VITE_API_URL }}
