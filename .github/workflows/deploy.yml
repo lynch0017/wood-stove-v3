@@ -49,6 +49,7 @@ jobs:
         VITE_INFLUXDB_TOKEN: ${{ vars.VITE_INFLUXDB_TOKEN }}
         VITE_INFLUXDB_ORG: ${{ vars.VITE_INFLUXDB_ORG }}
         VITE_INFLUXDB_BUCKET: ${{ vars.VITE_INFLUXDB_BUCKET }}
+        VITE_API_URL: ${{ vars.VITE_API_URL }}
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
